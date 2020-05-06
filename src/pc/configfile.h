@@ -2,6 +2,7 @@
 #define CONFIGFILE_H
 
 extern bool         configFullscreen;
+extern unsigned int configMSAA;
 extern unsigned int configKeyA;
 extern unsigned int configKeyB;
 extern unsigned int configKeyStart;
@@ -18,6 +19,7 @@ extern unsigned int configKeyStickRight;
 extern unsigned int configKeyJump;
 extern unsigned int configKeyPunch;
 extern unsigned int configKeyCrouch;
+extern unsigned int configKeyWalk;
 extern unsigned int configKeyMenu;
 
 void configfile_load(const char *filename);

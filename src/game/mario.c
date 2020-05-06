@@ -1270,11 +1270,13 @@ void update_mario_button_inputs(struct MarioState *m) {
             m->input |= INPUT_B_PRESSED;
         }
 
-        if (m->controller->pc_controls->crouch) {
+        if (m->controller->pc_controls->crouch ||
+            m->controller->pc_controls->mouse_right) {
             m->input |= INPUT_Z_DOWN;
         }
 
-        if (m->controller->pc_controls->crouch_pressed) {
+        if (m->controller->pc_controls->crouch_pressed ||
+            m->controller->pc_controls->mouse_right_pressed) {
             m->input |= INPUT_Z_PRESSED;
         }
     }
@@ -1298,7 +1300,10 @@ void update_mario_button_inputs(struct MarioState *m) {
 void update_mario_joystick_inputs(struct MarioState *m) {
     struct Controller *controller = m->controller;
     f32 mag = ((controller->stickMag / 64.0f) * (controller->stickMag / 64.0f)) * 64.0f;
-
+    if (controller->pc_controls->walk) {
+        mag /= 4;
+    }
+    
     if (m->squishTimer == 0) {
         m->intendedMag = mag / 2.0f;
     } else {

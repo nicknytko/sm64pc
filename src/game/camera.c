@@ -2314,19 +2314,26 @@ s16 update_default_camera(struct Camera *c) {
     return yaw;
 }
 
-f32 gDefaultYaw = 0;
-f32 gDefaultPitch = 0;
+s16 gDefaultYaw = 0;
+s16 gDefaultPitch = 0;
 
-s32 pc_free_camera(struct Camera* c){
+s16 pc_free_camera(struct Camera* c){
     pc_controls_t* controls = gPlayer1Controller->pc_controls;
-    gDefaultPitch += ((f32)(controls->mouse_delta_y)) / -16.0f;
-    gDefaultYaw += ((f32)(controls->mouse_delta_x)) / 16.0f;
-
+    gDefaultPitch += ((s16)(controls->mouse_delta_y)) * -512;
+    gDefaultYaw += ((s16)(controls->mouse_delta_x)) * 512;
+    if (gDefaultPitch < 0) {
+        if (gDefaultPitch > -16384) {
+            gDefaultPitch = 0;
+        } else {
+            gDefaultPitch = 32767;
+        }
+    }
+    
     if (controls->mouse_wheel_up) {
         gCameraZoomDist -= 128.0f;
     }
     if (controls->mouse_wheel_down) {
-        gCameraZoomDist +=128.0f;
+        gCameraZoomDist += 128.0f;
     }
     if (gCameraZoomDist < 512.0f) {
         gCameraZoomDist = 512.0f;
@@ -2336,11 +2343,11 @@ s32 pc_free_camera(struct Camera* c){
     c->focus[1] = sMarioCamState->pos[1] + 125.0f;
     c->focus[2] = sMarioCamState->pos[2];
 
-    c->pos[0] = sMarioCamState->pos[0] + gCameraZoomDist * sin(gDefaultPitch) * cos(gDefaultYaw);
-    c->pos[2] = sMarioCamState->pos[2] + gCameraZoomDist * sin(gDefaultPitch) * sin(gDefaultYaw);
-    set_camera_height(c, sMarioCamState->pos[1] + gCameraZoomDist * cos(gDefaultPitch));
+    c->pos[0] = sMarioCamState->pos[0] + gCameraZoomDist * sins(gDefaultPitch) * coss(gDefaultYaw);
+    c->pos[2] = sMarioCamState->pos[2] + gCameraZoomDist * sins(gDefaultPitch) * sins(gDefaultYaw);
+    set_camera_height(c, sMarioCamState->pos[1] + gCameraZoomDist * coss(gDefaultPitch));
 
-    return (s32)((-gDefaultYaw + (3.14159f * 0.5f)) * (32768.0f / 3.14159f));
+    return (s16)(-gDefaultYaw + 16384);
 }
 
 /**
@@ -2752,7 +2759,8 @@ void mode_cannon_camera(struct Camera *c) {
     sLakituPitch = 0;
     gCameraMovementFlags &= ~CAM_MOVING_INTO_MODE;
     c->nextYaw = update_in_cannon(c, c->focus, c->pos);
-    if (gPlayer1Controller->buttonPressed & A_BUTTON) {
+    if (gPlayer1Controller->buttonPressed & A_BUTTON ||
+        gPlayer1Controller->pc_controls->mouse_left) {
         set_camera_mode(c, CAMERA_MODE_BEHIND_MARIO, 1);
         sPanDistance = 0;
         sCannonYOffset = 0;
@@ -2819,6 +2827,7 @@ void transition_to_camera_mode(struct Camera *c, s16 newMode, s16 numFrames) {
 void set_camera_mode(struct Camera *c, s16 mode, s16 frames) {
     struct LinearTransitionPoint *start = &sModeInfo.transitionStart;
     struct LinearTransitionPoint *end = &sModeInfo.transitionEnd;
+    f32 unused;
 
     if (mode == CAMERA_MODE_WATER_SURFACE && gCurrLevelArea == AREA_TTM_OUTSIDE) {
     } else {
@@ -2862,6 +2871,8 @@ void set_camera_mode(struct Camera *c, s16 mode, s16 frames) {
 
         vec3f_get_dist_and_angle(start->focus, start->pos, &start->dist, &start->pitch, &start->yaw);
         vec3f_get_dist_and_angle(end->focus, end->pos, &end->dist, &end->pitch, &end->yaw);
+
+        vec3f_get_dist_and_angle(c->focus, c->pos, &unused, &gDefaultPitch, &gDefaultYaw);
     }
 }
 
@@ -3019,7 +3030,6 @@ void update_camera(struct Camera *c) {
     c->defMode = gLakituState.defMode;
 
     camera_course_processing(c);
-    dummy_802877EC(c);
     sCButtonsPressed = find_c_buttons_pressed(sCButtonsPressed, gPlayer1Controller->buttonPressed,
                                               gPlayer1Controller->buttonDown);
 
@@ -3039,8 +3049,20 @@ void update_camera(struct Camera *c) {
     }
     // If not in a cutscene, do mode processing
     if (c->cutscene == 0) {
-        c->nextYaw = pc_free_camera(c);
-        c->yaw = c->nextYaw;
+        sYawSpeed = 0x400;
+
+        switch (c->mode) {
+        case CAMERA_MODE_INSIDE_CANNON:
+            mode_cannon_camera(c);
+            break;
+        case CAMERA_MODE_SPIRAL_STAIRS:
+            mode_spiral_stairs_camera(c);
+            break;
+        default:
+            c->nextYaw = pc_free_camera(c);
+            c->yaw = c->nextYaw;
+        }
+        //c->yaw = c->nextYaw;
         /*
         sYawSpeed = 0x400;
 
@@ -3127,7 +3149,6 @@ void update_camera(struct Camera *c) {
     }
     // Start any mario-related cutscenes
     start_cutscene(c, get_cutscene_from_mario_status(c));
-    dummy_802877D8(c);
     gCheckingSurfaceCollisionsForCamera = FALSE;
     if (gCurrLevelNum != LEVEL_CASTLE) {
         // If fixed camera is selected as the alternate mode, then fix the camera as long as the right
@@ -3246,13 +3267,14 @@ void reset_camera(struct Camera *c) {
     unused8033B310 = 0;
 
     gDefaultYaw = 0;
-    gDefaultPitch = 3.14159f * 0.5f;
+    gDefaultPitch = 32768;
 }
 
 void init_camera(struct Camera *c) {
     struct Surface *floor = 0;
     Vec3f marioOffset;
     s32 i;
+    f32 unused;
 
     sCreditsPlayer2Pitch = 0;
     sCreditsPlayer2Yaw = 0;
@@ -3400,6 +3422,7 @@ void init_camera(struct Camera *c) {
     gLakituState.nextYaw = gLakituState.yaw;
     c->yaw = gLakituState.yaw;
     c->nextYaw = gLakituState.yaw;
+    vec3f_get_dist_and_angle(c->focus, c->pos, &unused, &gDefaultPitch, &gDefaultYaw);
 }
 
 /**
@@ -3502,12 +3525,6 @@ Gfx *geo_camera_main(s32 callContext, struct GraphNode *g, void *context) {
     return NULL;
 }
 
-void dummy_802877D8(UNUSED struct Camera *c) {
-}
-
-void dummy_802877EC(UNUSED struct Camera *c) {
-}
-
 void vec3f_sub(Vec3f dst, Vec3f src) {
     dst[0] -= src[0];
     dst[1] -= src[1];
@@ -3524,12 +3541,6 @@ void vec3f_to_object_pos(struct Object *o, Vec3f src) {
     o->oPosX = src[0];
     o->oPosY = src[1];
     o->oPosZ = src[2];
-}
-
-void unused_object_angle_to_vec3s(Vec3s dst, struct Object *o) {
-    dst[0] = o->oMoveAnglePitch;
-    dst[1] = o->oMoveAngleYaw;
-    dst[2] = o->oMoveAngleRoll;
 }
 
 /**
@@ -3558,19 +3569,6 @@ void evaluate_cubic_spline(f32 u, Vec3f Q, Vec3f a0, Vec3f a1, Vec3f a2, Vec3f a
     Q[0] = B[0] * a0[0] + B[1] * a1[0] + B[2] * a2[0] + B[3] * a3[0];
     Q[1] = B[0] * a0[1] + B[1] * a1[1] + B[2] * a2[1] + B[3] * a3[1];
     Q[2] = B[0] * a0[2] + B[1] * a1[2] + B[2] * a2[2] + B[3] * a3[2];
-
-    // Unused code
-    B[0] = -0.5f * u * u + u - 0.33333333f;
-    B[1] = 1.5f * u * u - 2.f * u - 0.5f;
-    B[2] = -1.5f * u * u + u + 1.f;
-    B[3] = 0.5f * u * u - 0.16666667f;
-
-    x = B[0] * a0[0] + B[1] * a1[0] + B[2] * a2[0] + B[3] * a3[0];
-    y = B[0] * a0[1] + B[1] * a1[1] + B[2] * a2[1] + B[3] * a3[1];
-    z = B[0] * a0[2] + B[1] * a1[2] + B[2] * a2[2] + B[3] * a3[2];
-
-    unusedSplinePitch = atan2s(sqrtf(x * x + z * z), y);
-    unusedSplineYaw = atan2s(z, x);
 }
 
 /**

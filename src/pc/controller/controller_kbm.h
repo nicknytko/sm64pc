@@ -1,5 +1,5 @@
-#ifndef CONTROLLER_KEYBOARD_H
-#define CONTROLLER_KEYBOARD_H
+#ifndef CONTROLLER_KBM_H
+#define CONTROLLER_KBM_H
 
 #include <stdbool.h>
 #include "controller_api.h"
@@ -17,6 +17,6 @@ bool mouse_wheel(bool up, bool down);
 }
 #endif
 
-extern struct ControllerAPI controller_keyboard;
+extern struct ControllerAPI controller_kbm;
 
 #endif

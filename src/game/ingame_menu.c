@@ -2691,8 +2691,9 @@ s16 render_pause_courses_and_castle(void) {
                 || gPlayer1Controller->pc_controls->mouse_left_pressed)
 #else
             if (gPlayer3Controller->buttonPressed & A_BUTTON
-             || gPlayer3Controller->buttonPressed & START_BUTTON
-                || gPlayer1Controller->pc_controls->mouse_left_pressed)
+                || gPlayer3Controller->buttonPressed & START_BUTTON
+                || gPlayer1Controller->pc_controls->mouse_left_pressed
+                || gPlayer1Controller->pc_controls->menu_pressed)
 #endif
             {
                 level_set_transition(0, 0);

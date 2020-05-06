@@ -63,6 +63,8 @@ typedef struct {
     u8 crouch_pressed: 1;
     u8 punch: 1;
     u8 punch_pressed: 1;
+    u8 walk: 1;
+    u8 walk_pressed: 1;
     u8 menu: 1;
     u8 menu_pressed: 1;
 

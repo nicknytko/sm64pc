@@ -55,34 +55,6 @@ s8 D_8032C650 = 0;
 s8 gShowProfiler = FALSE;
 s8 gShowDebugText = FALSE;
 
-// unused
-void handle_debug_key_sequences(void) {
-    static u16 sProfilerKeySequence[] = {
-        U_JPAD, U_JPAD, D_JPAD, D_JPAD, L_JPAD, R_JPAD, L_JPAD, R_JPAD
-    };
-    static u16 sDebugTextKeySequence[] = { D_JPAD, D_JPAD, U_JPAD, U_JPAD,
-                                           L_JPAD, R_JPAD, L_JPAD, R_JPAD };
-    static s16 sProfilerKey = 0;
-    static s16 sDebugTextKey = 0;
-    if (gPlayer3Controller->buttonPressed != 0) {
-        if (sProfilerKeySequence[sProfilerKey++] == gPlayer3Controller->buttonPressed) {
-            if (sProfilerKey == ARRAY_COUNT(sProfilerKeySequence)) {
-                sProfilerKey = 0, gShowProfiler ^= 1;
-            }
-        } else {
-            sProfilerKey = 0;
-        }
-
-        if (sDebugTextKeySequence[sDebugTextKey++] == gPlayer3Controller->buttonPressed) {
-            if (sDebugTextKey == ARRAY_COUNT(sDebugTextKeySequence)) {
-                sDebugTextKey = 0, gShowDebugText ^= 1;
-            }
-        } else {
-            sDebugTextKey = 0;
-        }
-    }
-}
-
 void Unknown80246170(void) {
     // uninitialized
     OSTime time;
@@ -96,15 +68,6 @@ void Unknown80246170(void) {
 #pragma GCC diagnostic ignored "-Wnonnull"
     sprintf(NULL, NULL);
 #pragma GCC diagnostic pop
-}
-
-void Dummy802461CC(void) {
-}
-
-void Dummy802461DC(void) {
-}
-
-void Dummy802461EC(void) {
 }
 
 void setup_mesg_queues(void) {

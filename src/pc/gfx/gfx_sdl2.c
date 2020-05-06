@@ -19,7 +19,7 @@
 #include "gfx_window_manager_api.h"
 #include "gfx_screen_config.h"
 
-#include "src/pc/controller/controller_keyboard.h"
+#include "src/pc/controller/controller_kbm.h"
 #include "src/pc/configfile.h"
 
 static SDL_Window *wnd;
@@ -89,13 +89,16 @@ static void gfx_sdl_init(void) {
     int windowed_flags = SDL_WINDOW_RESIZABLE;
     if (configFullscreen) {
         windowed_flags = SDL_WINDOW_FULLSCREEN_DESKTOP;
+        if (configMSAA > 0) {
+            SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
+            SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, configMSAA);
+        }
     }
     
     wnd = SDL_CreateWindow("Super Mario 64 PC-Port", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
             DESIRED_SCREEN_WIDTH, DESIRED_SCREEN_HEIGHT, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | windowed_flags);
 
     SDL_SetRelativeMouseMode(true);
-    
     SDL_GL_CreateContext(wnd);
     SDL_GL_SetSwapInterval(2); // TODO 0, 1 or 2 or remove this line
     

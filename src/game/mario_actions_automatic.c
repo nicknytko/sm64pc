@@ -695,8 +695,8 @@ s32 act_in_cannon(struct MarioState *m) {
             break;
 
         case 2:
-            m->faceAngle[0] -= (s16)(m->controller->stickY * 10.0f);
-            marioObj->oMarioCannonInputYaw -= (s16)(m->controller->stickX * 10.0f);
+            m->faceAngle[0] -= (s16)(m->controller->pc_controls->mouse_delta_y * 100);
+            marioObj->oMarioCannonInputYaw -= (s16)(m->controller->pc_controls->mouse_delta_x * 100);
 
             if (m->faceAngle[0] > 0x38E3) {
                 m->faceAngle[0] = 0x38E3;
@@ -713,7 +713,7 @@ s32 act_in_cannon(struct MarioState *m) {
             }
 
             m->faceAngle[1] = marioObj->oMarioCannonObjectYaw + marioObj->oMarioCannonInputYaw;
-            if (m->input & INPUT_A_PRESSED) {
+            if (m->controller->pc_controls->mouse_left_pressed) {
                 m->forwardVel = 100.0f * coss(m->faceAngle[0]);
 
                 m->vel[1] = 100.0f * sins(m->faceAngle[0]);

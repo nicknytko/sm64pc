@@ -2,14 +2,14 @@
 #include "lib/src/osContInternal.h"
 
 #include "controller_recorded_tas.h"
-#include "controller_keyboard.h"
+#include "controller_kbm.h"
 
 #include "controller_sdl.h"
 
 static struct ControllerAPI *controller_implementations[] = {
     &controller_recorded_tas,
     &controller_sdl,
-    &controller_keyboard,
+    &controller_kbm,
 };
 
 s32 osContInit(OSMesgQueue *mq, u8 *controllerBits, OSContStatus *status) {

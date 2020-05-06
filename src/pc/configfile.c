@@ -29,7 +29,8 @@ struct ConfigOption {
 /*
  *Config options and default values
  */
-bool configFullscreen            = false;
+bool configFullscreen            = true;
+unsigned int configMSAA          = 4;
 // Keyboard mappings (scancode values)
 unsigned int configKeyA          = 0x26;
 unsigned int configKeyB          = 0x33;
@@ -45,13 +46,15 @@ unsigned int configKeyStickDown  = 0x1F;
 unsigned int configKeyStickLeft  = 0x1E;
 unsigned int configKeyStickRight = 0x20;
 unsigned int configKeyJump       = 0x39;
-unsigned int configKeyPunch      = 0x2A;
+unsigned int configKeyPunch      = 0x2C;
 unsigned int configKeyCrouch     = 0x11D;
+unsigned int configKeyWalk       = 0x2A;
 unsigned int configKeyMenu       = 0x01;
 
 
 static const struct ConfigOption options[] = {
     {.name = "fullscreen",     .type = CONFIG_TYPE_BOOL, .boolValue = &configFullscreen},
+    {.name = "fullscreen_msaa",.type = CONFIG_TYPE_UINT, .uintValue = &configMSAA},
     {.name = "key_a",          .type = CONFIG_TYPE_UINT, .uintValue = &configKeyA},
     {.name = "key_b",          .type = CONFIG_TYPE_UINT, .uintValue = &configKeyB},
     {.name = "key_start",      .type = CONFIG_TYPE_UINT, .uintValue = &configKeyStart},
@@ -68,6 +71,7 @@ static const struct ConfigOption options[] = {
     {.name = "key_jump",       .type = CONFIG_TYPE_UINT, .uintValue = &configKeyJump},
     {.name = "key_punch",      .type = CONFIG_TYPE_UINT, .uintValue = &configKeyPunch},
     {.name = "key_crouch",     .type = CONFIG_TYPE_UINT, .uintValue = &configKeyCrouch},
+    {.name = "key_walk",       .type = CONFIG_TYPE_UINT, .uintValue = &configKeyWalk},
     {.name = "key_menu",       .type = CONFIG_TYPE_UINT, .uintValue = &configKeyMenu},
 };
 

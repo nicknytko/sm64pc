@@ -3,11 +3,6 @@
 #include <string.h>
 
 #include "controller_api.h"
-
-#ifdef TARGET_WEB
-#include "controller_emscripten_keyboard.h"
-#endif
-
 #include "../configfile.h"
 
 static int keyboard_buttons_down;
@@ -27,6 +22,8 @@ static int keyboard_map_scancode(int scancode) {
 bool keyboard_on_key_down(int scancode) {
     int mapped = keyboard_map_scancode(scancode);
     keyboard_buttons_down |= mapped;
+
+    /* printf("keypress: %d (%X)\n", scancode, scancode); */
     
     if (scancode == configKeyJump) {
         kbm_pc_controls.jump = 1;
@@ -41,6 +38,11 @@ bool keyboard_on_key_down(int scancode) {
     if (scancode == configKeyPunch) {
         kbm_pc_controls.punch = 1;
         kbm_pc_controls.punch_pressed = 1;
+        return 1;
+    }
+    if (scancode == configKeyWalk) {
+        kbm_pc_controls.walk = 1;
+        kbm_pc_controls.walk_pressed = 1;
         return 1;
     }
     if (scancode == configKeyMenu) {
@@ -69,6 +71,11 @@ bool keyboard_on_key_up(int scancode) {
     if (scancode == configKeyPunch) {
         kbm_pc_controls.punch = 0;
         kbm_pc_controls.punch_pressed = 0;
+        return 1;
+    }
+    if (scancode == configKeyWalk) {
+        kbm_pc_controls.walk = 0;
+        kbm_pc_controls.walk_pressed = 0;
         return 1;
     }
     if (scancode == configKeyMenu) {
@@ -110,7 +117,7 @@ static void set_keyboard_mapping(int index, int mask, int scancode) {
     keyboard_mapping[index][1] = mask;
 }
 
-static void keyboard_init(void) {
+static void kbm_init(void) {
     int i = 0;
 
     set_keyboard_mapping(i++, 0x80000,      configKeyStickUp);
@@ -126,13 +133,9 @@ static void keyboard_init(void) {
     set_keyboard_mapping(i++, R_CBUTTONS,   configKeyCRight);
     set_keyboard_mapping(i++, R_TRIG,       configKeyR);
     set_keyboard_mapping(i++, START_BUTTON, configKeyStart);
-
-#ifdef TARGET_WEB
-    controller_emscripten_keyboard_init();
-#endif
 }
 
-static void keyboard_read(OSContPad *pad) {
+static void kbm_read(OSContPad *pad) {
     pad->button |= keyboard_buttons_down;
     if ((keyboard_buttons_down & 0x30000) == 0x10000) {
         pad->stick_x = -128;
@@ -151,6 +154,7 @@ static void keyboard_read(OSContPad *pad) {
     kbm_pc_controls.jump_pressed = 0;
     kbm_pc_controls.crouch_pressed = 0;
     kbm_pc_controls.punch_pressed = 0;
+    kbm_pc_controls.walk_pressed = 0;
     kbm_pc_controls.menu_pressed = 0;
     kbm_pc_controls.mouse_delta_x = 0;
     kbm_pc_controls.mouse_delta_y = 0;
@@ -160,7 +164,7 @@ static void keyboard_read(OSContPad *pad) {
     kbm_pc_controls.mouse_wheel_down = false;
 }
 
-struct ControllerAPI controller_keyboard = {
-    keyboard_init,
-    keyboard_read
+struct ControllerAPI controller_kbm = {
+    kbm_init,
+    kbm_read
 };
