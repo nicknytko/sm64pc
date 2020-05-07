@@ -114,28 +114,12 @@ void print_intro_text(void) {
 #endif
         } else {
 #ifdef VERSION_EU
-            print_text_centered(20, 20, "START");
+            print_text_centered(20, 20, "SPACE");
 #else
             print_text_centered(60, 38, "PRESS");
-            print_text_centered(60, 20, "START");
+            print_text_centered(60, 20, "SPACE");
 #endif
         }
-    }
-}
-
-void print_intro_text2(void)
-{
-    if (gControllerBits == 0)
-    {
-        print_text_centered(160, 20, "NO CONTROLLER");
-    }
-    else
-    {
-        print_text_centered(160, 164, "SUPER MARIO 64 PC");
-        print_text_centered(160, 128, "ORIGINAL GAME");
-        print_text_centered(160, 110, "BY NINTENDO");
-        print_text_centered(160, 38, "PRESS START");
-        print_text_centered(160, 20, "COPYRIGHT 1996");
     }
 }
 

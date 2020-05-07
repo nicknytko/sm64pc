@@ -31,7 +31,10 @@ f32 find_floor_height(f32 x, f32 y, f32 z);
 f32 find_floor(f32 xPos, f32 yPos, f32 zPos, struct Surface **pfloor);
 f32 find_water_level(f32 x, f32 z);
 f32 find_poison_gas_level(f32 x, f32 z);
+u8  point_collide_floor_ceil_wall(f32 x, f32 y, f32 z);
+u8  cast_ray(f32 origin_x, f32 origin_y, f32 origin_z,
+             f32 dest_x, f32 dest_y, f32 dest_z,
+             f32* coll_x, f32* coll_y, f32* coll_z);
 void debug_surface_list_info(f32 xPos, f32 zPos);
-
 
 #endif /* _SURFACE_COLLISION_H */

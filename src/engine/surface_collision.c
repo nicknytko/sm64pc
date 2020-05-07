@@ -493,6 +493,17 @@ f32 find_floor_height(f32 x, f32 y, f32 z) {
 }
 
 /**
+ * Find the height of the shortest ceiling below a point.
+ */
+f32 find_ceil_height(f32 x, f32 y, f32 z) {
+    struct Surface *ceil;
+
+    f32 ceilHeight = find_floor(x, y, z, &ceil);
+
+    return ceilHeight;
+}
+
+/**
  * Find the highest dynamic floor under a given position. Perhaps originally static and
  * and dynamic floors were checked separately.
  */
@@ -690,6 +701,109 @@ static s32 surface_list_length(struct SurfaceNode *list) {
 }
 
 /**
+ * Returns true if the point is inside a wall, ceiling, or floor.
+ */
+u8 point_collide_floor_ceil_wall(f32 x, f32 y, f32 z) {
+    f32 coords[3];
+    f32 floor_height = find_floor_height(x, y + 64.0f, z);
+    if (y < floor_height) {
+        return TRUE;
+    }
+
+    /*
+      This is always firing for some reason, need to investiage.
+    f32 ceil_height = find_ceil_height(x, y - 64.0f, z);
+    if (y > ceil_height) {
+        printf("ceil collision\n");
+        return TRUE;
+    }
+    */
+
+    coords[0] = x;
+    coords[1] = y;
+    coords[2] = z;
+    return (f32_find_wall_collision(coords, coords + 1, coords + 2, 0, 16.0f) > 0);
+}
+
+/**
+ * Casts a ray from origin to dest, and sets collision information in coll if any wall
+ * or ceiling was hit. coll is only set during a collision.
+ * @return True if a collision occurred.
+ */
+u8  cast_ray(f32 origin_x, f32 origin_y, f32 origin_z,
+             f32 dest_x, f32 dest_y, f32 dest_z,
+             f32* coll_x, f32* coll_y, f32* coll_z) {
+
+    f32 disp_x = dest_x - origin_x;
+    f32 disp_y = dest_y - origin_y;
+    f32 disp_z = dest_z - origin_z;
+    f32 dist = sqrt((disp_x * disp_x) +
+                    (disp_y * disp_y) +
+                    (disp_z * disp_z));
+
+    /* discretize the ray into collision points */
+    const f32 disc_space = 32.0f;
+    s32 num_pts = ceil(dist / disc_space);
+
+    /* c2 - collided point. c1 - point immediately before. */
+    float c1x, c1y, c1z;
+    float c2x, c2y, c2z;
+
+    u8 collided = FALSE;
+    for (s32 i = 0; i < num_pts; i++) {
+        f32 j = ((f32) i / (f32) num_pts);
+        f32 cx = origin_x + disp_x * j;
+        f32 cy = origin_y + disp_y * j;
+        f32 cz = origin_z + disp_z * j;
+
+        if (point_collide_floor_ceil_wall(cx, cy, cz)) {
+            collided = TRUE;
+
+            if (i == 0) {
+                /* We collided at the origin, no need for bisection. */
+                *coll_x = origin_x; *coll_y = origin_y; *coll_z = origin_z;
+                return TRUE;
+            } else {
+                c2x = cx; c2y = cy; c2z = cz;
+                j = ((f32) (i - 1) / (f32) num_pts);
+                c1x = origin_x + disp_x * j;
+                c1y = origin_y + disp_y * j;
+                c1z = origin_z + disp_z * j;
+                break;
+            }
+        }
+    }
+
+    if (!collided) {
+        return FALSE;
+    }
+
+    /* run a couple iterations of bisection method to get a more accurate collision point. */
+    const s32 bisection_iter = 4;
+    for (s32 i = 0; i < bisection_iter; i++) {
+        float cmx = (c1x + c2x) / 2;
+        float cmy = (c1y + c2y) / 2;
+        float cmz = (c1z + c2z) / 2;
+
+        if (point_collide_floor_ceil_wall(cmx, cmy, cmz)) {
+            c2x = cmx;
+            c2y = cmy;
+            c2z = cmz;
+        } else {
+            c1x = cmx;
+            c1y = cmy;
+            c1z = cmz;
+        }
+    }
+
+    /* return the midpoint */
+    *coll_x = (c1x + c2x) / 2;
+    *coll_y = (c1y + c2y) / 2;
+    *coll_z = (c1z + c2z) / 2;
+    return TRUE;
+}
+
+/**
  * Print the area,number of walls, how many times they were called,
  * and some allocation information.
  */
@@ -743,46 +857,4 @@ void debug_surface_list_info(f32 xPos, f32 zPos) {
     gNumCalls.floor = 0;
     gNumCalls.ceil = 0;
     gNumCalls.wall = 0;
-}
-
-/**
- * An unused function that finds and interacts with any type of surface.
- * Perhaps an original implementation of surfaces before they were more specialized.
- */
-static s32 unused_resolve_floor_or_ceil_collisions(s32 checkCeil, f32 *px, f32 *py, f32 *pz, f32 radius,
-                                                   struct Surface **psurface, f32 *surfaceHeight) {
-    f32 nx, ny, nz, oo;
-    f32 x = *px, y = *py, z = *pz;
-    f32 offset, distance;
-
-    *psurface = NULL;
-
-    if (checkCeil) {
-        *surfaceHeight = find_ceil(x, y, z, psurface);
-    } else {
-        *surfaceHeight = find_floor(x, y, z, psurface);
-    }
-
-    if (*psurface == NULL) {
-        return -1;
-    }
-
-    nx = (*psurface)->normal.x;
-    ny = (*psurface)->normal.y;
-    nz = (*psurface)->normal.z;
-    oo = (*psurface)->originOffset;
-
-    offset = nx * x + ny * y + nz * z + oo;
-    distance = offset >= 0 ? offset : -offset;
-
-    // Interesting surface interaction that should be surf type independent.
-    if (distance < radius) {
-        *px += nx * (radius - offset);
-        *py += ny * (radius - offset);
-        *pz += nz * (radius - offset);
-
-        return 1;
-    }
-
-    return 0;
 }
