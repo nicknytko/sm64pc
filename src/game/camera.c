@@ -1379,21 +1379,16 @@ s32 update_fixed_camera(struct Camera *c, Vec3f focus, UNUSED Vec3f pos) {
  */
 s32 update_boss_fight_camera(struct Camera *c, Vec3f focus, Vec3f pos) {
     struct Object *o;
-    UNUSED u8 filler2[12];
     f32 focusDistance;
-    UNUSED u8 filler3[4];
     // Floor normal values
     f32 nx;
     f32 ny;
     f32 nz;
     /// Floor originOffset
     f32 oo;
-    UNUSED u8 filler4[4];
-    UNUSED s16 unused;
     s16 yaw;
     s16 heldState;
     struct Surface *floor;
-    UNUSED u8 filler[20];
     Vec3f secondFocus;
     Vec3f holdFocOffset = { 0.f, -150.f, -125.f };
 
@@ -1485,11 +1480,6 @@ s32 update_boss_fight_camera(struct Camera *c, Vec3f focus, Vec3f pos) {
                                                                      : -gMarioStates[0].angleVel[1]);
     }
 
-    //! Unnecessary conditional, focusDistance is already bounded to 800
-    if (focusDistance < 400.f) {
-        focusDistance = 400.f;
-    }
-
     // Set C-Down distance and pitch.
     // C-Down will essentially double the distance from the center.
     // sLakituPitch approaches 33.75 degrees.
@@ -1553,12 +1543,6 @@ struct ParallelTrackingPoint sBBHLibraryParTrackPath[] = {
     { 0, { 0.0f, 0.0f, 0.0f }, 0.0f, 0.0f },
 };
 
-s32 unused_update_mode_5_camera(UNUSED struct Camera *c, UNUSED Vec3f focus, UNUSED Vec3f pos) {
-}
-
-void unused_80282678(UNUSED s32 unused) {
-}
-
 void mode_boss_fight_camera(struct Camera *c) {
     c->nextYaw = update_boss_fight_camera(c, c->focus, c->pos);
 }
@@ -1600,9 +1584,7 @@ void mode_fixed_camera(struct Camera *c) {
  * The C-Buttons rotate the camera 90 degrees left/right and 67.5 degrees up/down.
  */
 s32 update_behind_mario_camera(struct Camera *c, Vec3f focus, Vec3f pos) {
-    UNUSED u8 unused2[12];
     f32 dist;
-    UNUSED u8 unused3[4];
     s16 absPitch;
     s16 pitch;
     s16 yaw;
@@ -1611,7 +1593,6 @@ s32 update_behind_mario_camera(struct Camera *c, Vec3f focus, Vec3f pos) {
     s16 goalYawOff = 0;
     s16 yawSpeed;
     s16 pitchInc = 32;
-    UNUSED u8 unused[12];
     f32 maxDist = 800.f;
     f32 focYOff = 125.f;
 
@@ -1627,10 +1608,6 @@ s32 update_behind_mario_camera(struct Camera *c, Vec3f focus, Vec3f pos) {
     // Focus on mario
     vec3f_copy(focus, sMarioCamState->pos);
     c->focus[1] += focYOff;
-    //! @bug unnecessary
-    dist = calc_abs_dist(focus, pos);
-    //! @bug unnecessary
-    pitch = calculate_pitch(focus, pos);
     vec3f_get_dist_and_angle(focus, pos, &dist, &pitch, &yaw);
     if (dist > maxDist) {
         dist = maxDist;
@@ -2245,11 +2222,18 @@ s16 pc_free_camera(struct Camera* c){
     if (controls->mouse_wheel_down) {
         gCameraZoomDist += 128.0f;
     }
-    if (gCameraZoomDist < 512.0f) {
-        gCameraZoomDist = 512.0f;
+    if (gCameraZoomDist < 300.0f) {
+        gCameraZoomDist = 300.0f;
+        set_mode_c_up(c);
     }
 
-    approach_f32_asymptotic_bool(&current_dist, gCameraZoomDist, 0.75f);
+    if (gCameraMovementFlags & CAM_MOVING_INTO_MODE) {
+        if (!approach_f32_asymptotic_bool(&current_dist, gCameraZoomDist, 0.25f)) {
+            gCameraMovementFlags &= ~CAM_MOVING_INTO_MODE;
+        }
+    } else {
+        current_dist = gCameraZoomDist;
+    }
     vec3f_set_dist_and_angle(c->focus, c->pos, current_dist, pitch, yaw);
 
     cast_ray(c->focus[0], c->focus[1], c->focus[2],
@@ -2546,6 +2530,9 @@ void move_mario_head_c_up(UNUSED struct Camera *c) {
     sCUpCameraPitch += (s16)(gPlayer1Controller->stickY * 10.f);
     sModeOffsetYaw -= (s16)(gPlayer1Controller->stickX * 10.f);
 
+    sCUpCameraPitch += ((s16)(gPlayer1Controller->pc_controls->mouse_delta_y)) * 512;
+    sModeOffsetYaw -= ((s16)(gPlayer1Controller->pc_controls->mouse_delta_x)) * 512;
+
     // Bound looking up to nearly 80 degrees.
     if (sCUpCameraPitch > 0x38E3) {
         sCUpCameraPitch = 0x38E3;
@@ -2605,8 +2592,6 @@ void move_into_c_up(struct Camera *c) {
  * The main update function for C-Up mode
  */
 s32 mode_c_up_camera(struct Camera *c) {
-    UNUSED u8 unused[16];
-
     // Play a sound when entering C-Up mode
     if (!(sCameraSoundFlags & CAM_SOUND_C_UP_PLAYED)) {
         play_sound_cbutton_up();
@@ -2643,7 +2628,8 @@ s32 mode_c_up_camera(struct Camera *c) {
     sPanDistance = 0.f;
 
     // Exit C-Up mode
-    if (gPlayer1Controller->buttonPressed & (A_BUTTON | B_BUTTON | D_CBUTTONS | L_CBUTTONS | R_CBUTTONS)) {
+    if (gPlayer1Controller->buttonPressed & (A_BUTTON | B_BUTTON | D_CBUTTONS | L_CBUTTONS | R_CBUTTONS) ||
+        gPlayer1Controller->pc_controls->mouse_wheel_down) {
         exit_c_up(c);
     }
     return 0;
@@ -2663,8 +2649,6 @@ s32 update_in_cannon(UNUSED struct Camera *c, Vec3f focus, Vec3f pos) {
  * sCannonYOffset is used to make the camera rotate down when mario has just entered the cannon
  */
 void mode_cannon_camera(struct Camera *c) {
-    UNUSED u8 unused[24];
-
     sLakituPitch = 0;
     gCameraMovementFlags &= ~CAM_MOVING_INTO_MODE;
     c->nextYaw = update_in_cannon(c, c->focus, c->pos);
@@ -2736,7 +2720,7 @@ void transition_to_camera_mode(struct Camera *c, s16 newMode, s16 numFrames) {
 void set_camera_mode(struct Camera *c, s16 mode, s16 frames) {
     struct LinearTransitionPoint *start = &sModeInfo.transitionStart;
     struct LinearTransitionPoint *end = &sModeInfo.transitionEnd;
-
+    
     if (mode == CAMERA_MODE_WATER_SURFACE && gCurrLevelArea == AREA_TTM_OUTSIDE) {
     } else {
         // Clear movement flags that would affect the transition
@@ -2932,6 +2916,10 @@ void update_camera(struct Camera *c) {
         sYawSpeed = 0;
         play_cutscene(c);
         sFramesSinceCutsceneEnded = 0;
+
+        if (c->cutscene == 0) {
+            gCameraMovementFlags |= CAM_MOVING_INTO_MODE;
+        }
     } else {
         // Clear the recent cutscene after 8 frames
         if (gRecentCutscene != 0 && sFramesSinceCutsceneEnded < 8) {
@@ -2952,6 +2940,9 @@ void update_camera(struct Camera *c) {
             break;
         case CAMERA_MODE_SPIRAL_STAIRS:
             mode_spiral_stairs_camera(c);
+            break;
+        case CAMERA_MODE_C_UP:
+            mode_c_up_camera(c);
             break;
         default:
             c->nextYaw = pc_free_camera(c);
